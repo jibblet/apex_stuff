@@ -1,38 +1,31 @@
-List<Database.LeadConvert> leadConverts = new List<Database.LeadConvert>();
-Database.LeadConvert lc = new Database.LeadConvert();
-lc.setLeadId('HERE');
-lc.setOwnerId(lc.getOwnerID());
-lc.setDoNotCreateOpportunity(true);
-leadConverts.add(lc);
 LeadStatus convertStatus = [SELECT Id, ApiName FROM LeadStatus WHERE IsConverted=true LIMIT 1];
-lc.setConvertedStatus(convertStatus.ApiName);
-Database.LeadConvertResult lcr = Database.convertLead(lc);
 
+List<Lead> leadConvertsList = [SELECT Id, OwnerId FROM Lead WHERE Status = 'Accepted' AND Class__r.Name LIKE '%Fall 2022%'];
 
+List<Database.LeadConvert> leadConverts = new List<Database.LeadConvert>();
 
+for (Lead leadRecord : leadConvertsList) {
+    // Create a new LeadConvert object for each lead
+    Database.LeadConvert lc = new Database.LeadConvert();
 
-
-
-///////////////////////////////////////////////////
-/IN PROGRESS/
-///////////////////////////
-//Integer i = [SELECT COUNT() FROM Lead WHERE Status='Accepted' and Class__r.Name like '%Fall 2022%'];
-
-
-List<Database.LeadConvert> leadConverts = new List<Database.LeadConvert>(); //NOT MINE. defines a list, leadConverts
-List<Lead> leadConvertsList = [SELECT Id FROM Lead WHERE Status='Accepted' and Class__r.Name like '%Fall 2022%' LIMIT 1];
-system.debug(leadConvertsList);
-Database.LeadConvert lc = new Database.LeadConvert();
-
-
-Integer i = 1;
-Integer a = 0;
-for (a=0;a==i;a++){
-    lc.setLeadId(leadConverts.get(a));
+    // Set the LeadId and OwnerId for the conversion
+    lc.setLeadId(leadRecord.Id);
+    lc.setOwnerId(leadRecord.OwnerId);
     lc.setDoNotCreateOpportunity(true);
-    leadConverts.add(lc);
-    //REQUIRED
-    LeadStatus convertStatus = [SELECT Id, ApiName FROM LeadStatus WHERE IsConverted=true LIMIT 1];
     lc.setConvertedStatus(convertStatus.ApiName);
-    Database.LeadConvertResult lcr = Database.convertLead(lc);
+    leadConverts.add(lc);
+}
+
+// Convert all leads in the list using Database.convertLead
+for (Database.LeadConvert lc : leadConverts) {
+    try {
+        Database.LeadConvertResult lcr = Database.convertLead(lc);
+        if (lcr.isSuccess()) {
+            System.debug('Lead Conversion Successful: ' + lc.getLeadId());
+        } else {
+            System.debug('Lead Conversion Failed: ' + lc.getLeadId());
+        }
+    } catch (Exception e) {
+        System.debug('Error during lead conversion: ' + e.getMessage());
+    }
 }
